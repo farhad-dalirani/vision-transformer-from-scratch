@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=65", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "vision-transformer-from-scratch"
+version = "0.1.0"
+description = "Vision Transformer (ViT)"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Your Name", email = "you@example.com" }
+]
+
+requires-python = ">=3.10"
+
+dependencies = [
+    "numpy",
+    "Pillow",
+    "tqdm",
+    "torch",          # CPU version; GPU is installed separately via Makefile
+    "torchvision"     # CPU version; GPU is installed separately via Makefile
+]
+
+
+[project.scripts]
+vit = "vision_transformer.cli.main:main"
+
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "ruff",
+    "pytest",
+    "pytest-cov",
+]
+
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+
+[tool.ruff]
+line-length = 88
+fix = true
+
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = []     
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+docstring-code-format = true
+
+
+[tool.pytest.ini_options]
+addopts = "-v"
+testpaths = ["tests"]
