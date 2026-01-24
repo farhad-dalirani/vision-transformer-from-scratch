@@ -28,7 +28,7 @@ def test_patch_embedding_raise_error_different_res_strict_mode_true():
     )
     input_tensor = torch.rand(size=(5, 3, 448, 448))
     with pytest.raises(ValueError):
-        out = patch_embed_layer(input_tensor)
+        _ = patch_embed_layer(input_tensor)
 
 
 def test_patch_embedding_different_res_strict_mode_false():
@@ -48,7 +48,7 @@ def test_patch_embedding_raises_when_input_not_divisible_by_patch_size():
     )
     input_tensor = torch.rand(size=(5, 3, 777, 448))
     with pytest.raises(ValueError):
-        out = patch_embed_layer(input_tensor)
+        _ = patch_embed_layer(input_tensor)
 
 
 def test_patch_embedding_raises_on_channel_mismatch_in_strict_mode():

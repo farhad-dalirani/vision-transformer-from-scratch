@@ -30,7 +30,7 @@ class PatchEmbedding(nn.Module):
         Output: (B, N, embed_dim), where
             N = (H / patch_size) × (W / patch_size).
     """
-        
+
     def __init__(
         self,
         image_size: int,
@@ -67,9 +67,9 @@ class PatchEmbedding(nn.Module):
     def set_strict(self, strict: bool) -> None:
         """Enable or disable strict input shape/channel validation."""
         self.strict = strict
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
+
         B, C, H, W = x.shape
 
         if self.strict:
