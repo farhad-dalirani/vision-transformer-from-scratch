@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from vision_transformer.model.layers import MLPBlock
+from vision_transformer.model.mlp_block import MLPBlock
 
 
 def test_input_output_dims():
