@@ -75,7 +75,8 @@ class PatchEmbedding(nn.Module):
         if self.strict:
             if H != self.image_size or W != self.image_size:
                 raise ValueError(
-                    f"Expected input size {(self.image_size, self.image_size)}, got {(H, W)}"
+                    f"Expected input size {(self.image_size, self.image_size)},"
+                    f" got {(H, W)}"
                 )
             if C != self.in_channels:
                 raise ValueError(
