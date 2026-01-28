@@ -6,6 +6,34 @@ from vision_transformer.model.mlp_block import TransformerMLP
 
 
 class TransformerEncoderBlock(nn.Module):
+    """Single Transformer encoder block used in Vision Transformer (ViT).
+
+    Implements the Transformer block described in the Vision Transformer
+    paper. 
+    The block consists of a multi-head self-attention
+    (MSA) layer and a position-wise feed-forward MLP (FFN), each preceded
+    by LayerNorm and followed by a residual connection.
+
+    The computation follows:
+        x = x + MSA(LayerNorm(x))
+        x = x + MLP(LayerNorm(x))
+
+    Args:
+        embed_dim: Token embedding dimension (D).
+        num_heads: Number of attention heads.
+        mha_attention_dropout_p: Dropout probability applied to attention
+            weights in the multi-head self-attention layer.
+        mha_proj_dropout_p: Dropout probability applied after the attention
+            output projection.
+        mlp_ratio: Expansion ratio for the hidden dimension of the MLP
+            (e.g., 4.0 means hidden_dim = 4 * embed_dim).
+        mlp_dropout_p: Dropout probability applied after each dense layer
+            in the Transformer MLP.
+
+    Shape:
+        Input:  (B, N, D)
+        Output: (B, N, D)
+    """
 
     def __init__(
         self,
