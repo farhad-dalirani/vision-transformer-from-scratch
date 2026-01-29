@@ -3,8 +3,6 @@ from typing import Callable
 import torch
 import torch.nn as nn
 
-from vision_transformer.model.transformer_encoder_block import TransformerEncoderBlock
-
 
 class TransformerEncoder(nn.Module):
     """Transformer encoder composed of a stack of encoder blocks.
@@ -30,6 +28,7 @@ class TransformerEncoder(nn.Module):
     Raises:
         ValueError: If `num_encoder_blocks` is less than or equal to zero.
     """
+
     def __init__(
         self,
         num_encoder_blocks: int,
