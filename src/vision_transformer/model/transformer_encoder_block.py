@@ -9,7 +9,7 @@ class TransformerEncoderBlock(nn.Module):
     """Single Transformer encoder block used in Vision Transformer (ViT).
 
     Implements the Transformer block described in the Vision Transformer
-    paper. 
+    paper.
     The block consists of a multi-head self-attention
     (MSA) layer and a position-wise feed-forward MLP (FFN), each preceded
     by LayerNorm and followed by a residual connection.

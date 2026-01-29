@@ -1,4 +1,3 @@
-import pytest
 import torch
 
 from vision_transformer.model.transformer_encoder_block import TransformerEncoderBlock
