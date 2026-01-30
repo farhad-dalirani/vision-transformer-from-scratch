@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class TrainingConfig:
     # Dataset / input
@@ -8,23 +7,22 @@ class TrainingConfig:
     num_classes: int = 1000
     image_size: int = 224
 
-    # Training length
+    # Training length (ImageNet)
     epochs: int = 300
 
-    # Batch / optimizer
-    batch_size: int = 4096
+    # Optimizer
     optimizer: str = "adam"
-    betas: tuple = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
+    batch_size: int = 4096
     weight_decay: float = 0.3
 
-    # Learning rate
+    # LR schedule
     base_lr: float = 3e-3
     lr_schedule: str = "cosine"
     warmup_steps: int = 10_000
 
-    # Regularization (ImageNet-from-scratch needs strong reg)
+    # Regularization
     dropout: float = 0.1
-    label_smoothing: float = 0.0
 
     # Stability
     grad_clip_norm: float = 1.0

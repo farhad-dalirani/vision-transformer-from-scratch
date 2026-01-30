@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 @dataclass(frozen=True)
 class ViTConfig:
     image_size: int = 224
@@ -14,6 +13,7 @@ class ViTConfig:
 
 
 VIT_B_16 = ViTConfig(
+    patch_size=16,
     embed_dim=768,
     num_transformer_blocks=12,
     num_heads=12,
