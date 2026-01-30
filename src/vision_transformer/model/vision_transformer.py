@@ -60,6 +60,7 @@ class VisionTransformer(nn.Module):
         ValueError: If `image_size` is not divisible by `patch_size`.
         ValueError: If `head_type` is not one of {"pretrain", "finetune"}.
     """
+
     def __init__(
         self,
         image_size: int,
@@ -81,7 +82,11 @@ class VisionTransformer(nn.Module):
         super().__init__()
 
         if image_size % patch_size != 0:
-            raise ValueError("image_size must be divisible by patch_size")
+            raise ValueError(
+                f"image_size ({image_size}) must be divisible by "
+                f"patch_size ({patch_size}). Vision Transformer requires a "
+                "regular grid of non-overlapping patches."
+            )
 
         self.image_size = image_size
         self.patch_size = patch_size
