@@ -80,7 +80,10 @@ def test_build_train_transforms_has_expected_ops() -> None:
         ),
     ],
 )
-def test_build_eval_transforms_op_sequence(policy: str, expected_first_two: tuple[type, type]) -> None:
+def test_build_eval_transforms_op_sequence(
+    policy: str, 
+    expected_first_two: tuple[type, type]
+) -> None:
     cfg = TransformConfig(image_size=224, eval_resize_policy=policy)
     t = build_eval_transforms(cfg)
 
@@ -115,7 +118,10 @@ def test_build_eval_transforms_resize_then_crop_computes_expected_resize_size() 
 
 
 def test_build_eval_transforms_resize_only_ratio_preserving_uses_direct_size() -> None:
-    cfg = TransformConfig(image_size=32, eval_resize_policy="resize_only_ratio_preserving")
+    cfg = TransformConfig(
+        image_size=32, 
+        eval_resize_policy="resize_only_ratio_preserving"
+    )
     t = build_eval_transforms(cfg)
 
     resize = t.transforms[0]
@@ -160,7 +166,11 @@ def test_normalize_parameters_custom_norm() -> None:
         ("resize_only_ratio_preserving", 224, (320, 320)),
     ],
 )
-def test_eval_transform_output_shape(policy: str, image_size: int, input_wh: tuple[int, int]) -> None:
+def test_eval_transform_output_shape(
+    policy: str, 
+    image_size: int, 
+    input_wh: tuple[int, int]
+) -> None:
     cfg = TransformConfig(image_size=image_size, eval_resize_policy=policy)
     t = build_eval_transforms(cfg)
 

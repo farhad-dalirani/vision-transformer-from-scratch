@@ -94,7 +94,9 @@ def _eval_resize_then_crop_ops(image_size: int) -> list[transforms.Transform]:
     ]
 
 
-def _eval_resize_only_ratio_preserving_ops(image_size: int) -> list[transforms.Transform]:
+def _eval_resize_only_ratio_preserving_ops(
+        image_size: int
+    ) -> list[transforms.Transform]:
     """Creates resize-only operations for evaluation.
 
     Args:
