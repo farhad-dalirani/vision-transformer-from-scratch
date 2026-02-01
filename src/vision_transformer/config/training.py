@@ -4,11 +4,10 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class TrainingConfig:
     # Dataset / input
-    dataset: str = "imagenet1k"
-    num_classes: int = 1000
-    image_size: int = 224
+    dataset: str = "cifar10"
+    image_size: int = 32
 
-    # Training length (ImageNet)
+    # Training length
     epochs: int = 300
 
     # Optimizer
@@ -24,6 +23,11 @@ class TrainingConfig:
 
     # Regularization
     dropout: float = 0.1
+
+    # Loss function
+    type: str = "cross-entropy"
+    label_smoothing: float = 0.0
+    reduction: str = "mean"
 
     # Stability
     grad_clip_norm: float = 1.0

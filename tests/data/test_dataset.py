@@ -4,9 +4,10 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from vision_transformer.data.datasets import DatasetConfig, build_datasets
+from vision_transformer.config.dataset import DatasetConfig
+from vision_transformer.config.transform import TransformConfig
+from vision_transformer.data.datasets import build_datasets
 from vision_transformer.data.transforms import (
-    TransformConfig,
     build_eval_transforms,
     build_train_transforms,
 )

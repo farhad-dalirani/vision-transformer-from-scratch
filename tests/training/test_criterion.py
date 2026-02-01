@@ -1,12 +1,10 @@
 import pytest
 import torch
-import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
 from vision_transformer.training.losses import (
     calculate_loss,
     criterion,
-    cross_entropy_loss,
 )
 
 

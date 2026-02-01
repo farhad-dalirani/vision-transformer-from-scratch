@@ -7,10 +7,12 @@ import torch
 from PIL import Image
 from torchvision import transforms as tvt
 
-from vision_transformer.data.transforms import (
+from vision_transformer.config.transform import (
     DEFAULT_MEAN,
     DEFAULT_STD,
     TransformConfig,
+)
+from vision_transformer.data.transforms import (
     build_eval_transforms,
     build_train_transforms,
 )
