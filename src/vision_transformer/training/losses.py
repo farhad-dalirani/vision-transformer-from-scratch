@@ -4,13 +4,13 @@ import torch
 from torch.nn import CrossEntropyLoss
 
 
-def criterion(type="cross-entropy", **kwargs) -> Callable:
+def get_criterion(loss_name="cross-entropy", **kwargs) -> Callable:
     """Factory function to create a loss criterion.
 
     Currently supports cross-entropy loss with optional label smoothing.
 
     Args:
-        type: Type of loss to construct. Supported values:
+        loss_name: Type of loss to construct. Supported values:
             - "cross-entropy"
         **kwargs: Additional keyword arguments for the loss.
             label_smoothing: Amount of label smoothing to apply. Defaults to 0.0.
@@ -22,18 +22,20 @@ def criterion(type="cross-entropy", **kwargs) -> Callable:
     Raises:
         ValueError: If an unsupported loss type is requested.
     """
-    if type.lower() == "cross-entropy":
+    if loss_name.lower() == "cross-entropy":
         label_smoothing = kwargs.get("label_smoothing", 0.0)
         reduction = kwargs.get("reduction", "mean")
-        return cross_entropy_loss(label_smoothing=label_smoothing, reduction=reduction)
+        return get_cross_entropy_loss(
+            label_smoothing=label_smoothing, reduction=reduction
+        )
     else:
         raise ValueError(
-            f"Requested criterion type {type} is not "
+            f"Requested criterion type {loss_name} is not "
             "supported. Currently supported are ['cross-entropy']."
         )
 
 
-def cross_entropy_loss(label_smoothing=0.0, reduction="mean") -> CrossEntropyLoss:
+def get_cross_entropy_loss(label_smoothing=0.0, reduction="mean") -> CrossEntropyLoss:
     """Constructs a cross-entropy loss function.
 
     This loss expects raw, unnormalized logits as input and integer class
