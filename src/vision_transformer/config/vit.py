@@ -11,6 +11,7 @@ class ViTConfig:
     num_heads: int = 12
     mlp_ratio: float = 4.0
     num_classes: int = 1000
+    dropout: float = 0.1
 
 
 VIT_B_16 = ViTConfig(
