@@ -1,6 +1,6 @@
+import math
 from typing import Callable, Literal
 
-import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 
@@ -30,7 +30,7 @@ def cosine_lr_scheduler_with_warmup_fn(
             return current_step / warmup_steps
 
         progress = (current_step - warmup_steps) / max(1, total_steps - warmup_steps)
-        return 0.5 * (1.0 + torch.cos(torch.pi * progress))
+        return 0.5 * (1.0 + math.cos(math.pi * progress))
 
     return lr_lambda
 
