@@ -6,7 +6,7 @@ optimizerName = Literal["adam", "sgd"]
 
 @dataclass
 class OptimizerConfig:
-    type: optimizerName = "adam"
+    opt_name: optimizerName = "adam"
 
     # Adam optimizer setting
     betas: tuple[float, float] = (0.9, 0.999)
