@@ -15,6 +15,7 @@ from vision_transformer.config.model import ViTConfig
 from vision_transformer.config.optimizer import OptimizerConfig
 from vision_transformer.config.training import TrainingConfig
 from vision_transformer.config.transform import TransformConfig
+from vision_transformer.training.train import training_loop
 
 
 def _parse_bool(s: str) -> bool:
@@ -218,11 +219,13 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(_as_dict(cfg), indent=2))
             return 0
 
-        # Training
-
-        print("Resolved config (use --print-config to pretty-print).")
+        print(">    Experiment Configuration:\n")
         print(cfg)
-        print("\nTODO: call your training runner with this config.")
+        print("\n")
+
+        # Training
+        training_loop(experiment_config=cfg)
+
         return 0
 
     return 1
