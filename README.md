@@ -32,7 +32,17 @@ make check-gpu
 ```
 
 ## How To Use
-Check supported commands and their options:
+
+### Training
+After installing the project, you can start training using the `vit train` command. The training CLI is fully configuration-driven and allows you to override any field in the default experiment configs located in `src/vision_transformer/config/` via the `--set section.field=value` syntax. Multiple --set flags can be provided to customize the run without editing code. For example, the command below trains a Vision Transformer under the default configuration, with overrides for input image size (448), training duration (100 epochs), learning rate (3e-4), and Adam optimizer betas (0.9,0.98).
+
+```python
+vit train \
+  --set model.image_size=448 \
+  --set training.epochs=100 \
+  --set optimizer.lr=3e-4 \
+  --set optimizer.betas=0.9,0.98
+```
 
 ## Results
 
