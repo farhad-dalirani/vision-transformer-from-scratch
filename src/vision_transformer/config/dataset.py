@@ -31,8 +31,8 @@ class DatasetConfig:
             no official validation split exists (e.g., CIFAR).
         split_seed: Random seed for deterministic train/validation splitting.
     """
-    name: str
-    root: str
+    name: str = "cifar10"
+    root: str = "./data"
 
     # ImageFolder-only arguments
     train_dir: str | None = "train"

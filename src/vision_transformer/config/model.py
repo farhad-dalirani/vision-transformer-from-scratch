@@ -21,13 +21,13 @@ class ViTConfig:
 VIT_B_16 = ViTConfig(
     patch_size=16,
     embed_dim=768,
-    num_transformer_blocks=12,
+    num_encoder_blocks=12,
     num_attention_heads=12,
 )
 
 VIT_B_32 = ViTConfig(
     patch_size=32,
     embed_dim=768,
-    num_transformer_blocks=12,
+    num_encoder_blocks=12,
     num_attention_heads=12,
 )

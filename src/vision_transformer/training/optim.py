@@ -1,7 +1,7 @@
 from torch.optim import SGD, Adam
 from torch.optim.optimizer import Optimizer, ParamsT
 
-from vision_transformer.config.optim import optimizerName
+from vision_transformer.config.optimizer import optimizerName
 
 
 def get_optimizer(
