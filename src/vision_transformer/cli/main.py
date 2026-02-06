@@ -15,12 +15,12 @@ from vision_transformer.config.model import ViTConfig
 from vision_transformer.config.optimizer import OptimizerConfig
 from vision_transformer.config.training import TrainingConfig
 from vision_transformer.config.transform import TransformConfig
-from vision_transformer.training.train import training_loop
-
 from vision_transformer.logger.logger_factory import LoggerFactory
+from vision_transformer.training.train import training_loop
 
 LoggerFactory.configure()
 _log = LoggerFactory.get_logger()
+
 
 def _parse_bool(s: str) -> bool:
     v = s.strip().lower()
