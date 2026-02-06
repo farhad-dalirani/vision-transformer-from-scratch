@@ -25,8 +25,11 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     device = experiment_config.training.device
     epochs = experiment_config.training.epochs
     batch_size = experiment_config.training.batch_size
+    gradient_accumulation_steps = experiment_config.training.gradient_accumulation_steps
     grad_clip_global_norm = experiment_config.training.grad_clip_global_norm
     dataloader_num_workers = experiment_config.training.dataloader_num_workers
+
+    assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
 
     # Get transforms for dataset
     transform_conf = experiment_config.transform
@@ -64,8 +67,8 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     # Get vision transformer (ViT) model
     model_conf = experiment_config.model
     model = VisionTransformer(**asdict(model_conf), strict=True, head_type="pretrain")
-    model.train()
     model.to(device=device)
+    model.train()
 
     # Create optimizer
     optimizer_conf = experiment_config.optimizer
@@ -73,12 +76,16 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
 
     # Learning rate scheduler
     lr_scheduler_conf = experiment_config.lr_scheduler
-    total_steps = epochs * len(train_dl)
+    steps_per_epoch = (
+        len(train_dl) + gradient_accumulation_steps - 1
+    ) // gradient_accumulation_steps
+    total_steps = epochs * steps_per_epoch
     lr_scheduler = get_lr_scheduler(
         optimizer=optim, **asdict(lr_scheduler_conf), total_steps=total_steps
     )
 
     global_step = 0
+    optimizer_step = 0  # real update step
     n_period = 50
     window_losses = deque(maxlen=n_period)
 
@@ -91,21 +98,31 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         epoch_steps = 0
         window_losses.clear()
 
+        optim.zero_grad(set_to_none=True)
+
         for step, (X, y) in enumerate(train_dl, start=1):
 
             X = X.to(device)
             y = y.to(device)
 
-            optim.zero_grad(set_to_none=True)
             logit_pred = model(X)
 
             loss = calculate_loss(criterion=criterion, logit_pred=logit_pred, y_gt=y)
-            loss.backward()
-            if grad_clip_global_norm is not None:
-                clip_grad_norm_(model.parameters(), grad_clip_global_norm)
+            # Scale for accumulation so gradient magnitudes match large batch training
+            (loss / gradient_accumulation_steps).backward()
 
-            optim.step()
-            lr_scheduler.step()
+            do_step = (step % gradient_accumulation_steps == 0) or (
+                step == len(train_dl)
+            )
+            if do_step:
+                if grad_clip_global_norm is not None:
+                    clip_grad_norm_(model.parameters(), grad_clip_global_norm)
+
+                optim.step()
+                lr_scheduler.step()
+                optim.zero_grad(set_to_none=True)
+
+                optimizer_step += 1
 
             # log train loss
             loss_train = float(loss.item())
@@ -119,13 +136,14 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
                 lr = optim.param_groups[0]["lr"]
 
                 _log.info(
-                    "epoch=%d/%d step=%d/%d global_step=%d "
+                    "epoch=%d/%d step=%d/%d global_step=%d opt_step=%d "
                     "loss_avg_epoch=%.6f loss_avg_last_%d=%.6f lr=%.6e",
                     _epoch + 1,
                     epochs,
                     step,
                     len(train_dl),
                     global_step,
+                    optimizer_step,
                     avg_epoch,
                     n_period,
                     avg_window,
@@ -137,11 +155,12 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         avg_window = sum(window_losses) / max(len(window_losses), 1)
         lr = optim.param_groups[0]["lr"]
         _log.info(
-            "epoch=%d/%d DONE loss_epoch=%.6f loss_last_%d=%.6f lr=%.6e",
+            "epoch=%d/%d DONE loss_epoch=%.6f loss_last_%d=%.6f lr=%.6e opt_steps=%d",
             _epoch + 1,
             epochs,
             avg_epoch,
             n_period,
             avg_window,
             lr,
+            optimizer_step,
         )
