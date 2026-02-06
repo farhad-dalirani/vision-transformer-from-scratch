@@ -17,6 +17,10 @@ from vision_transformer.config.training import TrainingConfig
 from vision_transformer.config.transform import TransformConfig
 from vision_transformer.training.train import training_loop
 
+from vision_transformer.logger.logger_factory import LoggerFactory
+
+LoggerFactory.configure()
+_log = LoggerFactory.get_logger()
 
 def _parse_bool(s: str) -> bool:
     v = s.strip().lower()
@@ -219,9 +223,9 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(_as_dict(cfg), indent=2))
             return 0
 
-        print(">    Experiment Configuration:\n")
-        print(cfg)
-        print("\n")
+        _log.info(">    Experiment Configuration:\n")
+        _log.info(cfg)
+        _log.info("\n")
 
         # Training
         training_loop(experiment_config=cfg)
