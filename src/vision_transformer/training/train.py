@@ -1,3 +1,4 @@
+from collections import deque
 from dataclasses import asdict
 
 from torch.nn.utils import clip_grad_norm_
@@ -9,10 +10,14 @@ from vision_transformer.data.transforms import (
     build_eval_transforms,
     build_train_transforms,
 )
+from vision_transformer.logger.logger_factory import LoggerFactory
 from vision_transformer.model.vision_transformer import VisionTransformer
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
+
+LoggerFactory.configure()
+_log = LoggerFactory.get_logger()
 
 
 def training_loop(experiment_config: ExperimentConfig) -> None:
@@ -73,11 +78,20 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         optimizer=optim, **asdict(lr_scheduler_conf), total_steps=total_steps
     )
 
+    global_step = 0
+    n_period = 50
+    window_losses = deque(maxlen=n_period)
+
     # Training loop
     for _epoch in range(epochs):
 
         model.train()
-        for X, y in train_dl:
+
+        epoch_loss_sum = 0.0
+        epoch_steps = 0
+        window_losses.clear()
+
+        for step, (X, y) in enumerate(train_dl, start=1):
 
             X = X.to(device)
             y = y.to(device)
@@ -92,3 +106,42 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
 
             optim.step()
             lr_scheduler.step()
+
+            # log train loss
+            loss_train = float(loss.item())
+            global_step += 1
+            epoch_steps += 1
+            epoch_loss_sum += loss_train
+            window_losses.append(loss_train)
+            if step % n_period == 0:
+                avg_window = sum(window_losses) / len(window_losses)
+                avg_epoch = epoch_loss_sum / epoch_steps
+                lr = optim.param_groups[0]["lr"]
+
+                _log.info(
+                    "epoch=%d/%d step=%d/%d global_step=%d "
+                    "loss_avg_epoch=%.6f loss_avg_last_%d=%.6f lr=%.6e",
+                    _epoch + 1,
+                    epochs,
+                    step,
+                    len(train_dl),
+                    global_step,
+                    avg_epoch,
+                    n_period,
+                    avg_window,
+                    lr,
+                )
+
+        # Log at the end of epoch
+        avg_epoch = epoch_loss_sum / max(epoch_steps, 1)
+        avg_window = sum(window_losses) / max(len(window_losses), 1)
+        lr = optim.param_groups[0]["lr"]
+        _log.info(
+            "epoch=%d/%d DONE loss_epoch=%.6f loss_last_%d=%.6f lr=%.6e",
+            _epoch + 1,
+            epochs,
+            avg_epoch,
+            n_period,
+            avg_window,
+            lr,
+        )
