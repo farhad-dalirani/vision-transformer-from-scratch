@@ -1,8 +1,10 @@
-from collections import deque
 from dataclasses import asdict
+from datetime import datetime
 
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from tqdm.auto import tqdm
 
 from vision_transformer.config.experiment import ExperimentConfig
 from vision_transformer.data.datasets import build_datasets
@@ -22,6 +24,11 @@ _log = LoggerFactory.get_logger()
 
 def training_loop(experiment_config: ExperimentConfig) -> None:
 
+    _log.info(
+        "> To see training related information such as loss, open"
+        "tensorboard:  tensorboard --logdir=runs"
+    )
+
     device = experiment_config.training.device
     epochs = experiment_config.training.epochs
     batch_size = experiment_config.training.batch_size
@@ -30,6 +37,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     dataloader_num_workers = experiment_config.training.dataloader_num_workers
 
     assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
+
+    run_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    writer = SummaryWriter(f"runs/{run_name}")
 
     # Get transforms for dataset
     transform_conf = experiment_config.transform
@@ -84,23 +94,17 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         optimizer=optim, **asdict(lr_scheduler_conf), total_steps=total_steps
     )
 
-    global_step = 0
     optimizer_step = 0  # real update step
-    n_period = 50
-    window_losses = deque(maxlen=n_period)
 
     # Training loop
     for _epoch in range(epochs):
 
         model.train()
-
-        epoch_loss_sum = 0.0
-        epoch_steps = 0
-        window_losses.clear()
-
         optim.zero_grad(set_to_none=True)
 
-        for step, (X, y) in enumerate(train_dl, start=1):
+        pbar = tqdm(train_dl, desc=f"Epoch {_epoch+1}/{epochs}", leave=True)
+
+        for step, (X, y) in enumerate(pbar, start=1):
 
             X = X.to(device)
             y = y.to(device)
@@ -122,45 +126,20 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
                 lr_scheduler.step()
                 optim.zero_grad(set_to_none=True)
 
-                optimizer_step += 1
-
-            # log train loss
-            loss_train = float(loss.item())
-            global_step += 1
-            epoch_steps += 1
-            epoch_loss_sum += loss_train
-            window_losses.append(loss_train)
-            if step % n_period == 0:
-                avg_window = sum(window_losses) / len(window_losses)
-                avg_epoch = epoch_loss_sum / epoch_steps
-                lr = optim.param_groups[0]["lr"]
-
-                _log.info(
-                    "epoch=%d/%d step=%d/%d global_step=%d opt_step=%d "
-                    "loss_avg_epoch=%.6f loss_avg_last_%d=%.6f lr=%.6e",
-                    _epoch + 1,
-                    epochs,
-                    step,
-                    len(train_dl),
-                    global_step,
-                    optimizer_step,
-                    avg_epoch,
-                    n_period,
-                    avg_window,
-                    lr,
+                # log train loss in tensorboard
+                writer.add_scalar(
+                    tag="Loss/train",
+                    scalar_value=loss.item(),
+                    global_step=optimizer_step,
                 )
 
-        # Log at the end of epoch
-        avg_epoch = epoch_loss_sum / max(epoch_steps, 1)
-        avg_window = sum(window_losses) / max(len(window_losses), 1)
-        lr = optim.param_groups[0]["lr"]
-        _log.info(
-            "epoch=%d/%d DONE loss_epoch=%.6f loss_last_%d=%.6f lr=%.6e opt_steps=%d",
-            _epoch + 1,
-            epochs,
-            avg_epoch,
-            n_period,
-            avg_window,
-            lr,
-            optimizer_step,
-        )
+                # log learning rate
+                writer.add_scalar(
+                    tag="Learning-rate",
+                    scalar_value=optim.param_groups[0]["lr"],
+                    global_step=optimizer_step,
+                )
+
+                optimizer_step += 1
+
+    writer.close()

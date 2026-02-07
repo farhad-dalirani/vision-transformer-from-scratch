@@ -20,7 +20,8 @@ dependencies = [
     "Pillow",
     "tqdm",
     "torch",          # CPU version; GPU is installed separately via Makefile
-    "torchvision"     # CPU version; GPU is installed separately via Makefile
+    "torchvision",     # CPU version; GPU is installed separately via Makefile
+    "tensorboard"
 ]
 
 
