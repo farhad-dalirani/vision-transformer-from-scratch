@@ -12,6 +12,7 @@ from vision_transformer.data.transforms import (
     build_eval_transforms,
     build_train_transforms,
 )
+from vision_transformer.inference.predict import evaluate_classifier
 from vision_transformer.logger.logger_factory import LoggerFactory
 from vision_transformer.model.vision_transformer import VisionTransformer
 from vision_transformer.training.losses import calculate_loss, get_criterion
@@ -25,8 +26,8 @@ _log = LoggerFactory.get_logger()
 def training_loop(experiment_config: ExperimentConfig) -> None:
 
     _log.info(
-        "> To see training related information such as loss, open"
-        "tensorboard:  tensorboard --logdir=runs"
+        "> To see training related information such as loss, open "
+        "tensorboard:  tensorboard --logdir=runs\n"
     )
 
     device = experiment_config.training.device
@@ -35,6 +36,8 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     gradient_accumulation_steps = experiment_config.training.gradient_accumulation_steps
     grad_clip_global_norm = experiment_config.training.grad_clip_global_norm
     dataloader_num_workers = experiment_config.training.dataloader_num_workers
+    eval_interval = experiment_config.training.eval_interval
+    num_classes = experiment_config.model.num_classes
 
     assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
 
@@ -141,5 +144,32 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
                 )
 
                 optimizer_step += 1
+
+        # Evaluate on validation set
+        if _epoch % eval_interval == 0 or _epoch == epochs - 1:
+            val_set_metrics = evaluate_classifier(
+                model=model,
+                dataloader=val_dl,
+                device=device,
+                num_classes=num_classes,
+                compute_confusion_matrix=False,
+            )
+            writer.add_scalar("Accuracy/val", val_set_metrics["accuracy"], _epoch)
+            writer.add_scalar("F1/val", val_set_metrics["f1"], _epoch)
+            writer.add_scalar("Precision/val", val_set_metrics["precision"], _epoch)
+            writer.add_scalar("Recall/val", val_set_metrics["recall"], _epoch)
+
+    # Evaluate on test set
+    test_set_metrics = evaluate_classifier(
+        model=model,
+        dataloader=test_dl,
+        device=device,
+        num_classes=num_classes,
+        compute_confusion_matrix=False,
+    )
+    writer.add_scalar("Accuracy/test", val_set_metrics["accuracy"], _epoch)
+    writer.add_scalar("F1/test", val_set_metrics["f1"], _epoch)
+    writer.add_scalar("Precision/test", val_set_metrics["precision"], _epoch)
+    writer.add_scalar("Recall/test", val_set_metrics["recall"], _epoch)
 
     writer.close()

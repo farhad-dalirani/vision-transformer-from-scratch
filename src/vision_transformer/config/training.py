@@ -10,3 +10,4 @@ class TrainingConfig:
     grad_clip_global_norm: float | None = 1.0
     device = "cuda:0"
     dataloader_num_workers = 2
+    eval_interval = 10
