@@ -44,6 +44,12 @@ vit train \
   --set optimizer.betas=0.9,0.98
 ```
 
+Also, stop training can be resumed, just pass the path to saved checkpoint, for example:
+```python
+vit train \
+  --set training.resume_path="./checkpoints/2026-02-07_21-53-15/last.pth"
+```
+
 ## Results
 
 ## License
