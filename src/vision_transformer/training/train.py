@@ -1,12 +1,15 @@
 from dataclasses import asdict
 from datetime import datetime
+from pathlib import Path
 
+import torch
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 from vision_transformer.config.experiment import ExperimentConfig
+from vision_transformer.config.utils import dataclass_from_dict
 from vision_transformer.data.datasets import build_datasets
 from vision_transformer.data.transforms import (
     build_eval_transforms,
@@ -15,6 +18,7 @@ from vision_transformer.data.transforms import (
 from vision_transformer.inference.predict import evaluate_classifier
 from vision_transformer.logger.logger_factory import LoggerFactory
 from vision_transformer.model.vision_transformer import VisionTransformer
+from vision_transformer.training.checkpoint import save_checkpoint
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
@@ -24,12 +28,56 @@ _log = LoggerFactory.get_logger()
 
 
 def training_loop(experiment_config: ExperimentConfig) -> None:
+    """Run the end-to-end training loop for the Vision Transformer.
 
+    This function builds the full training pipeline from an ``ExperimentConfig``:
+    transforms, datasets/dataloaders, model, loss, optimizer, and learning-rate
+    scheduler. It supports resuming training from a checkpoint when
+    ``experiment_config.training.resume_path`` is set.
+
+    Resume behavior:
+      - Loads the checkpoint dictionary early.
+      - Reconstructs ``ExperimentConfig`` from the checkpoint and uses it as the
+        source of truth for building the pipeline.
+      - Restores model, optimizer, and scheduler states.
+      - Moves optimizer state tensors (e.g., Adam moments) to the configured device.
+      - Restores counters such as epoch index and optimizer step.
+
+    Checkpointing behavior:
+      - Saves ``last.pth`` at each evaluation point.
+      - Saves ``best.pth`` when validation accuracy improves.
+
+    Logging:
+      - Writes TensorBoard scalars for training loss, learning rate, validation
+        metrics, and test metrics under ``runs/<run_name>``.
+
+    Args:
+        experiment_config: Experiment configuration dataclass containing training,
+            dataset, transform, model, optimizer, scheduler, and loss settings.
+
+    Returns:
+        None
+    """
     _log.info(
         "> To see training related information such as loss, open "
         "tensorboard:  tensorboard --logdir=runs\n"
     )
 
+    # ---------------------------------------------------------------------
+    # 1) (Optional) Resume: load checkpoint early so the checkpoint config
+    #    becomes the single source of truth for the run.
+    # ---------------------------------------------------------------------
+    resume_path = getattr(experiment_config.training, "resume_path", None)
+    ckpt = None
+    if resume_path:
+        ckpt = torch.load(str(resume_path), map_location="cpu")
+        experiment_config = dataclass_from_dict(
+            ExperimentConfig, ckpt["experiment_config"]
+        )
+
+    # ---------------------------------------------------------------------
+    # 2) Pull commonly-used training settings from the config
+    # ---------------------------------------------------------------------
     device = experiment_config.training.device
     epochs = experiment_config.training.epochs
     batch_size = experiment_config.training.batch_size
@@ -37,13 +85,26 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     grad_clip_global_norm = experiment_config.training.grad_clip_global_norm
     dataloader_num_workers = experiment_config.training.dataloader_num_workers
     eval_interval = experiment_config.training.eval_interval
+    checkpoints_dir = Path(experiment_config.training.checkpoints_dir)
     num_classes = experiment_config.model.num_classes
 
     assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
+    assert experiment_config.transform.image_size == experiment_config.model.image_size
 
-    run_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # ---------------------------------------------------------------------
+    # 3) Run naming + TensorBoard logging
+    #    - If resuming, keep the same run_name so logs/checkpoints stay together.
+    # ---------------------------------------------------------------------
+    run_name = (
+        Path(resume_path).parent.name
+        if resume_path
+        else datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    )
     writer = SummaryWriter(f"runs/{run_name}")
 
+    # ---------------------------------------------------------------------
+    # 4) Data pipeline: transforms -> datasets -> dataloaders
+    # ---------------------------------------------------------------------
     # Get transforms for dataset
     transform_conf = experiment_config.transform
     train_trans = build_train_transforms(cfg=transform_conf)
@@ -73,6 +134,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         num_workers=dataloader_num_workers,
     )
 
+    # ---------------------------------------------------------------------
+    # 5) Loss / model / optimizer / scheduler setup (all built from config)
+    # ---------------------------------------------------------------------
     # Get loss functon
     loss_conf = experiment_config.loss
     criterion = get_criterion(**asdict(loss_conf))
@@ -89,6 +153,8 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
 
     # Learning rate scheduler
     lr_scheduler_conf = experiment_config.lr_scheduler
+    # When using gradient accumulation, the number of optimizer updates per epoch
+    # is smaller than len(train_dl). We compute that here for scheduler total_steps.
     steps_per_epoch = (
         len(train_dl) + gradient_accumulation_steps - 1
     ) // gradient_accumulation_steps
@@ -97,10 +163,44 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         optimizer=optim, **asdict(lr_scheduler_conf), total_steps=total_steps
     )
 
-    optimizer_step = 0  # real update step
+    # ---------------------------------------------------------------------
+    # 6) Restore from checkpoint (if any)
+    #    - Model weights.
+    #    - Optimizer states often contain tensors (e.g., Adam moments) that must be
+    #      moved to the same device as the model.
+    # ---------------------------------------------------------------------
+    start_epoch = 0
+    optimizer_step = 0
+    best_val_acc = float("-inf")
+    if ckpt is not None:
+        model.load_state_dict(ckpt["model_state_dict"])
 
-    # Training loop
-    for _epoch in range(epochs):
+        optim.load_state_dict(ckpt["optimizer_state_dict"])
+        for state in optim.state.values():
+            for k, v in state.items():
+                if torch.is_tensor(v):
+                    state[k] = v.to(device)
+
+        if ckpt.get("lr_scheduler_state_dict") is not None:
+            lr_scheduler.load_state_dict(ckpt["lr_scheduler_state_dict"])
+
+        # Restore counters
+        start_epoch = ckpt.get("epoch", 0) + 1
+        optimizer_step = ckpt.get("optimizer_step", 0)
+        best_val_acc = ckpt.get("best_val_acc", float("-inf"))
+        if best_val_acc is None:
+            best_val_acc = float("-inf")
+
+        _log.info(
+            f"Resumed from {resume_path} at epoch={start_epoch}, optimizer_step={optimizer_step}"
+        )
+
+    # ---------------------------------------------------------------------
+    # 7) Training loop
+    #    - Uses gradient accumulation to simulate larger batch sizes.
+    #    - Logs loss and LR on every optimizer update.
+    # ---------------------------------------------------------------------
+    for _epoch in range(start_epoch, epochs):
 
         model.train()
         optim.zero_grad(set_to_none=True)
@@ -145,7 +245,10 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
 
                 optimizer_step += 1
 
-        # Evaluate on validation set
+        # -----------------------------------------------------------------
+        # 8) Validation + checkpointing
+        #    - Save "best" when accuracy improves, always save "last".
+        # -----------------------------------------------------------------
         if _epoch % eval_interval == 0 or _epoch == epochs - 1:
             val_set_metrics = evaluate_classifier(
                 model=model,
@@ -159,7 +262,37 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
             writer.add_scalar("Precision/val", val_set_metrics["precision"], _epoch)
             writer.add_scalar("Recall/val", val_set_metrics["recall"], _epoch)
 
-    # Evaluate on test set
+            val_acc = val_set_metrics["accuracy"]
+            is_best = val_acc > best_val_acc
+            if is_best:
+                best_val_acc = val_acc
+
+            # Save model
+            if is_best:
+                save_checkpoint(
+                    checkpoints_dir / run_name / "best.pth",
+                    epoch=_epoch,
+                    optimizer_step=optimizer_step,
+                    model=model,
+                    optim=optim,
+                    lr_scheduler=lr_scheduler,
+                    experiment_config=experiment_config,
+                    best_val_acc=best_val_acc,
+                )
+            save_checkpoint(
+                checkpoints_dir / run_name / "last.pth",
+                epoch=_epoch,
+                optimizer_step=optimizer_step,
+                model=model,
+                optim=optim,
+                lr_scheduler=lr_scheduler,
+                experiment_config=experiment_config,
+                best_val_acc=best_val_acc,
+            )
+
+    # ---------------------------------------------------------------------
+    # 9) Final test evaluation
+    # ---------------------------------------------------------------------
     test_set_metrics = evaluate_classifier(
         model=model,
         dataloader=test_dl,
@@ -167,9 +300,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         num_classes=num_classes,
         compute_confusion_matrix=False,
     )
-    writer.add_scalar("Accuracy/test", val_set_metrics["accuracy"], _epoch)
-    writer.add_scalar("F1/test", val_set_metrics["f1"], _epoch)
-    writer.add_scalar("Precision/test", val_set_metrics["precision"], _epoch)
-    writer.add_scalar("Recall/test", val_set_metrics["recall"], _epoch)
+    writer.add_scalar("Accuracy/test", test_set_metrics["accuracy"], _epoch)
+    writer.add_scalar("F1/test", test_set_metrics["f1"], _epoch)
+    writer.add_scalar("Precision/test", test_set_metrics["precision"], _epoch)
+    writer.add_scalar("Recall/test", test_set_metrics["recall"], _epoch)
 
     writer.close()
