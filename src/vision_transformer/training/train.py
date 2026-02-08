@@ -75,6 +75,10 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
             ExperimentConfig, ckpt["experiment_config"]
         )
 
+        _log.info("\n>  Loaded Experiment Configuration to Resume Training:\n")
+        _log.info(experiment_config)
+        _log.info("\n")
+
     # ---------------------------------------------------------------------
     # 2) Pull commonly-used training settings from the config
     # ---------------------------------------------------------------------
@@ -85,7 +89,8 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     grad_clip_global_norm = experiment_config.training.grad_clip_global_norm
     dataloader_num_workers = experiment_config.training.dataloader_num_workers
     eval_interval = experiment_config.training.eval_interval
-    checkpoints_dir = Path(experiment_config.training.checkpoints_dir)
+    if experiment_config.training.checkpoints_dir is not None:
+        checkpoints_dir = Path(experiment_config.training.checkpoints_dir)
     num_classes = experiment_config.model.num_classes
 
     assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
