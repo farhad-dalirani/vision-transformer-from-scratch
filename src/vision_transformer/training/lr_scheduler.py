@@ -4,7 +4,7 @@ from typing import Callable, Literal
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 
-SchedulerNames = Literal["cosine", "linear"]
+SchedulerNames = Literal["cosine", "linear", "none"]
 
 
 def cosine_lr_scheduler_with_warmup_fn(
@@ -69,16 +69,23 @@ def get_lr_scheduler(
     warmup_steps: int,
     total_steps: int,
 ) -> LambdaLR:
-    """Creates a learning-rate scheduler with warm-up.
+    """Creates a learning-rate scheduler.
+
+    Supported scheduler types:
+    - "cosine": Cosine decay with linear warm-up.
+    - "linear": Linear decay with linear warm-up.
+    - "none": Constant learning rate (no scheduling).
 
     Args:
         optimizer: Optimizer whose learning rate will be scheduled.
-        scheduler_name: Type of scheduler to use ("cosine" or "linear").
-        warmup_steps: Number of steps for linear warm-up.
-        total_steps: Total number of optimizer steps during training.
+        scheduler_name: Type of scheduler to use ("cosine", "linear", or "none").
+        warmup_steps: Number of steps for linear warm-up (ignored if scheduler_name="none").
+        total_steps: Total number of optimizer steps during training
+            (ignored if scheduler_name="none").
 
     Returns:
-        A PyTorch LambdaLR scheduler.
+        A PyTorch LambdaLR scheduler. When scheduler_name="none", the returned
+        scheduler keeps the learning rate constant.
 
     Raises:
         ValueError: If the requested scheduler type is not supported.
@@ -97,7 +104,8 @@ def get_lr_scheduler(
             total_steps=total_steps,
             warmup_steps=warmup_steps,
         )
-
+    elif scheduler_name == "none":
+        lr_lambda=lambda _: 1.0
     else:
         raise ValueError(
             f"Requested scheduler type {scheduler_name} is not supported. "
