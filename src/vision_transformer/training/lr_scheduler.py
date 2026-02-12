@@ -105,7 +105,7 @@ def get_lr_scheduler(
             warmup_steps=warmup_steps,
         )
     elif scheduler_name == "none":
-        lr_lambda=lambda _: 1.0
+        lr_lambda = lambda _: 1.0
     else:
         raise ValueError(
             f"Requested scheduler type {scheduler_name} is not supported. "
