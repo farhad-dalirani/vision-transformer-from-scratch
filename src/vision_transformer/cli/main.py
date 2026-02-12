@@ -65,7 +65,7 @@ def _parse_value(value_str: str, annotation: Any) -> Any:
 
     # tuple / Tuple
     if origin in {tuple, Tuple := tuple}:  # Tuple alias
-        # Examples in your configs:
+        # Examples in configs:
         # - betas: tuple[float, float]
         # - mean/std: Tuple[float, float, float]
         parts = _split_csv(value_str)

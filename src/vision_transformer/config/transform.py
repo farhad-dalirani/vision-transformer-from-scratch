@@ -35,7 +35,7 @@ class TransformConfig:
     """
 
     image_size: int = 224
-    train_resize_min: float = 0.08
+    train_resize_min: float = 0.7
     train_resize_max: float = 1.0
     use_default_norm: bool = True
     mean: Tuple[float, float, float] = DEFAULT_MEAN
