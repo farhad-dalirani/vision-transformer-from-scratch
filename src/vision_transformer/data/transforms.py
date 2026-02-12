@@ -10,31 +10,57 @@ from vision_transformer.config.transform import (
 
 
 def build_train_transforms(cfg: TransformConfig) -> transforms.Compose:
-    """Builds standard training transforms.
+    """Builds the training transform pipeline.
 
-    The recipe is:
-      RandomResizedCrop -> RandomHorizontalFlip -> ToTensor -> Normalize
+    Constructs a torchvision transform sequence based on the provided
+    configuration. The pipeline may include spatial resizing or cropping,
+    optional RandAugment, horizontal flipping, and normalization.
 
     Args:
-        cfg: Transform configuration.
+        cfg (TransformConfig): Configuration object specifying image size,
+            augmentation policies, and normalization settings.
 
     Returns:
-        A torchvision.transforms.Compose object for training.
+        transforms.Compose: A composed transform pipeline applied to
+        training images.
+
+    Raises:
+        ValueError: If an unknown training resize policy is provided.
     """
     mean = DEFAULT_MEAN if cfg.use_default_norm else cfg.mean
     std = DEFAULT_STD if cfg.use_default_norm else cfg.std
 
-    return transforms.Compose(
-        [
+
+    ops = []
+
+    if cfg.train_resize_policy == "resize_then_crop":
+        ops.append(
             transforms.RandomResizedCrop(
                 cfg.image_size,
                 scale=(cfg.train_resize_min, cfg.train_resize_max),
-            ),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std),
-        ]
-    )
+            )
+        )
+    elif cfg.train_resize_policy == "resize_only_ratio_preserving":
+        ops.append(transforms.Resize(cfg.image_size))
+    else:
+        raise ValueError(f"Unknown train_resize_policy: {cfg.train_resize_policy}")
+
+    if cfg.train_rand_augment:
+        ops.append(
+            transforms.RandAugment(
+                num_ops=cfg.train_rand_augment_num_ops,
+                magnitude=cfg.train_rand_augment_magnitude,
+            )
+        )
+
+    ops += [
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std),
+    ]
+
+    return transforms.Compose(ops)
+
 
 
 def _eval_resize_then_crop_ops(image_size: int) -> list[transforms.Transform]:
