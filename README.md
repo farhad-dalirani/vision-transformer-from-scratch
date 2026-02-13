@@ -1,7 +1,10 @@
 # Vision Transformer (ViT) from Scratch
 
 ## Introduction
-A clean PyTorch re-implementation of the Vision Transformer (ViT), introduced in “An Image Is Worth 16×16 Words: Transformers for Image Recognition at Scale” (ICLR 2021).
+A clean PyTorch re-implementation of the Vision Transformer (ViT) from scratch, introduced in “An Image Is Worth 16×16 Words: Transformers for Image Recognition at Scale” (ICLR 2021).
+
+The codebase is designed to be easy to train, modify, and extend. Everything is fully configurable, including ViT model architecture, optimization settings, data pipeline components, and training hyperparameters.
+
 
 ## Quick Installation
 
@@ -54,7 +57,6 @@ For practical examples, please refer to the `scripts/` folder.
 
 ## Results
 - For training on `CIFAR-10` from scratch, you can run `scripts/training-cifar-10.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `85.47%`.
-
 - For training on `CIFAR-100` from scratch, you can run `scripts/training-cifar-100.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `59.74%`.
 
 
