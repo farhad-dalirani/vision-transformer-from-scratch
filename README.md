@@ -50,7 +50,11 @@ vit train \
   --set training.resume_path="./checkpoints/2026-02-07_21-53-15/last.pth"
 ```
 
+For practical examples, please refer to the `scripts/` folder.
+
 ## Results
+For training on `CIFAR-100` from scratch, you can run `scripts/training-cifar-100.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `59.74%`.
+
 
 ## License
 Released under the MIT License. For used datasets, please check their respective licenses.
