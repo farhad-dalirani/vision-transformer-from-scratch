@@ -53,7 +53,9 @@ vit train \
 For practical examples, please refer to the `scripts/` folder.
 
 ## Results
-For training on `CIFAR-100` from scratch, you can run `scripts/training-cifar-100.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `59.74%`.
+- For training on `CIFAR-10` from scratch, you can run `scripts/training-cifar-10.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `85.47%`.
+
+- For training on `CIFAR-100` from scratch, you can run `scripts/training-cifar-100.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `59.74%`.
 
 
 ## License

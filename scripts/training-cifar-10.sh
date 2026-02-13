@@ -1,0 +1,30 @@
+vit train \
+--set model.image_size=32 \
+--set model.patch_size=4 \
+--set model.embed_dim=128 \
+--set model.num_attention_heads=4 \
+--set model.num_encoder_blocks=8 \
+--set model.num_classes=10 \
+--set model.positional_embedding_dropout_p=0.1 \
+--set model.mha_attention_dropout_p=0.1 \
+--set model.mha_proj_dropout_p=0.1 \
+--set model.mlp_dropout_p=0.1 \
+--set transform.image_size=32 \
+--set transform.train_resize_policy="resize_only_ratio_preserving" \
+--set transform.eval_resize_policy="resize_only_ratio_preserving" \
+--set transform.use_default_norm=false \
+--set transform.train_rand_augment=true \
+--set transform.mean=[0.5071,0.4867,0.4408] \
+--set transform.std=[0.2675,0.2565,0.2761] \
+--set dataset.name="cifar10" \
+--set optimizer.weight_decay=0.0 \
+--set optimizer.lr=1e-3 \
+--set lr_scheduler.scheduler_name='cosine' \
+--set lr_scheduler.warmup_steps=450 \
+--set loss.label_smoothing=0.0 \
+--set training.epochs=300 \
+--set training.batch_size=256 \
+--set training.gradient_accumulation_steps=1 \
+--set training.grad_clip_global_norm=1 \
+--set training.dataloader_num_workers=4
+
