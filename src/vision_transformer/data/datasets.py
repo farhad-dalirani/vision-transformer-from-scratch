@@ -36,6 +36,8 @@ def get_num_classes(dataset_name: str) -> int:
         return 10
     if name == "cifar100":
         return 100
+    if name == "gtsrb":
+        return 43
 
     raise ValueError(f"Unknown dataset name: {dataset_name}")
 
@@ -172,6 +174,27 @@ def build_datasets(
         )
         test_ds = datasets.CIFAR100(
             root=cfg.root, train=False, transform=eval_transform, download=cfg.download
+        )
+
+        train_indices, val_indices = _split_train_val_indices(
+            num_samples=len(full_train_for_train),
+            val_split=cfg.val_split,
+            seed=cfg.split_seed,
+        )
+        train_ds = Subset(full_train_for_train, train_indices)
+        val_ds = Subset(full_train_for_val, val_indices)
+        return train_ds, val_ds, test_ds
+
+    # --- German Traffic Sign Recognition Benchmark (GTSRB)
+    if name == "gtsrb":
+        full_train_for_train = datasets.GTSRB(
+            root=cfg.root, split="train", transform=train_transform, download=cfg.download
+        )
+        full_train_for_val = datasets.GTSRB(
+            root=cfg.root, split="train", transform=eval_transform, download=cfg.download
+        )
+        test_ds = datasets.GTSRB(
+            root=cfg.root, split="test", transform=eval_transform, download=cfg.download
         )
 
         train_indices, val_indices = _split_train_val_indices(
