@@ -53,7 +53,12 @@ vit train \
   --set training.resume_path="./checkpoints/2026-02-07_21-53-15/last.pth"
 ```
 
-For practical examples, please refer to the `scripts/` folder.
+For **practical examples**, please refer to the `scripts/` folder.
+
+To visualize training metrics such as loss and accuracy, launch TensorBoard with: 
+```bash
+tensorboard --logdir=runs
+```
 
 ## Results
 - For training on `CIFAR-10` from scratch, you can run `scripts/training-cifar-10.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `85.47%`.

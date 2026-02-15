@@ -10,8 +10,8 @@ vit train \
 --set model.mha_proj_dropout_p=0.1 \
 --set model.mlp_dropout_p=0.1 \
 --set transform.image_size=32 \
---set transform.train_resize_policy="resize_only_ratio_preserving" \
---set transform.eval_resize_policy="resize_only_ratio_preserving" \
+--set transform.train_resize_policy="resize_shorter_side" \
+--set transform.eval_resize_policy="resize_shorter_side" \
 --set transform.use_default_norm=false \
 --set transform.train_rand_augment=true \
 --set transform.mean=[0.5071,0.4867,0.4408] \
