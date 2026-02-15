@@ -1,0 +1,31 @@
+vit train \
+--set model.image_size=64 \
+--set model.patch_size=4 \
+--set model.embed_dim=128 \
+--set model.num_attention_heads=4 \
+--set model.num_encoder_blocks=8 \
+--set model.num_classes=43 \
+--set model.positional_embedding_dropout_p=0.1 \
+--set model.mha_attention_dropout_p=0.1 \
+--set model.mha_proj_dropout_p=0.1 \
+--set model.mlp_dropout_p=0.1 \
+--set transform.image_size=64 \
+--set transform.train_resize_policy="resize_then_random_crop" \
+--set transform.train_resize_min=0.8 \
+--set transform.train_resize_max=1.0 \
+--set transform.eval_resize_policy="resize_then_center_crop" \
+--set transform.use_default_norm=true \
+--set transform.train_horizontal_flip=false \
+--set transform.train_rand_augment=true \
+--set dataset.name="gtsrb" \
+--set optimizer.weight_decay=0.0 \
+--set optimizer.lr=1e-3 \
+--set lr_scheduler.scheduler_name='cosine' \
+--set lr_scheduler.warmup_steps=450 \
+--set loss.label_smoothing=0.0 \
+--set training.epochs=300 \
+--set training.batch_size=128 \
+--set training.gradient_accumulation_steps=1 \
+--set training.grad_clip_global_norm=1 \
+--set training.dataloader_num_workers=4
+
