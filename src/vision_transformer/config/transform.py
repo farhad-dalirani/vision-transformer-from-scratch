@@ -91,7 +91,7 @@ class TransformConfig:
     train_resize_max: float = 1.0
 
     train_horizontal_flip: bool = True
-    
+
     train_rand_augment: bool = True
     train_rand_augment_num_ops: int = 2
     train_rand_augment_magnitude: int = 9
