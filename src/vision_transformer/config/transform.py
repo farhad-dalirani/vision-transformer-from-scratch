@@ -7,62 +7,91 @@ from typing import Literal, Tuple
 DEFAULT_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 DEFAULT_STD: Tuple[float, float, float] = (0.229, 0.224, 0.225)
 
-TransformResizePolicy = Literal["resize_then_crop", "resize_only_ratio_preserving"]
+TransformResizePolicy = Literal[
+    "resize_then_random_crop", "resize_shorter_side", "resize_then_center_crop"
+]
 
 
 @dataclass(frozen=True)
 class TransformConfig:
-    """Configuration for dataset transforms.
+    """Configuration for image preprocessing and augmentation.
 
-    This dataclass defines all parameters controlling spatial transforms,
-    augmentation strategies, and normalization applied to images during
-    training and evaluation.
+    Defines spatial resizing strategies, data augmentation options,
+    and normalization parameters used for training and evaluation
+    pipelines.
+
+    This configuration is consumed by ``build_train_transforms`` and
+    ``build_eval_transforms`` to construct deterministic or stochastic
+    torchvision transform pipelines.
 
     Attributes:
-        image_size (int): Final output spatial size (H = W = image_size).
+        image_size (int):
+            Target spatial size. When square-producing policies are used,
+            the final output shape will be (image_size, image_size).
 
-        train_resize_policy (TransformResizePolicy): Spatial transform
-            policy used during training. One of:
-            - "resize_then_crop": Applies RandomResizedCrop.
-            - "resize_only_ratio_preserving": Applies Resize(image_size).
+        train_resize_policy (TransformResizePolicy):
+            Spatial transform policy applied during training. One of:
+            - "resize_then_random_crop": Applies RandomResizedCrop,
+              producing a square output.
+            - "resize_shorter_side": Resizes the shorter side to
+              ``image_size`` while preserving aspect ratio.
+            - "resize_then_center_crop": Resizes proportionally and
+              center-crops to a square output.
 
-        train_resize_min (float): Minimum scale factor for
-            RandomResizedCrop when using "resize_then_crop".
-            Interpreted as a fraction of the original image area.
+        train_resize_min (float):
+            Minimum fraction of the original image area sampled when
+            using "resize_then_random_crop".
 
-        train_resize_max (float): Maximum scale factor for
-            RandomResizedCrop when using "resize_then_crop".
+        train_resize_max (float):
+            Maximum fraction of the original image area sampled when
+            using "resize_then_random_crop".
 
-        train_rand_augment (bool): If True, applies RandAugment during
-            training.
+        train_horizontal_flip (bool):
+            If True, applies RandomHorizontalFlip during training.
 
-        train_rand_augment_num_ops (int): Number of augmentation
-            operations applied by RandAugment.
+        train_rand_augment (bool):
+            If True, applies RandAugment during training.
 
-        train_rand_augment_magnitude (int): Magnitude parameter for
-            RandAugment transformations.
+        train_rand_augment_num_ops (int):
+            Number of augmentation operations sampled per image when
+            RandAugment is enabled.
 
-        use_default_norm (bool): If True, uses ImageNet normalization
-            constants (DEFAULT_MEAN and DEFAULT_STD).
+        train_rand_augment_magnitude (int):
+            Magnitude parameter controlling the strength of RandAugment
+            transformations.
 
-        mean (Tuple[float, float, float]): Per-channel normalization
-            mean used when `use_default_norm` is False.
+        use_default_norm (bool):
+            If True, uses ImageNet normalization statistics
+            (DEFAULT_MEAN and DEFAULT_STD). If False, uses ``mean`` and ``std``.
 
-        std (Tuple[float, float, float]): Per-channel normalization
-            standard deviation used when `use_default_norm` is False.
+        mean (Tuple[float, float, float]):
+            Per-channel normalization mean (RGB), used when
+            ``use_default_norm`` is False.
 
-        eval_resize_policy (TransformResizePolicy): Spatial transform
-            policy used during evaluation.
+        std (Tuple[float, float, float]):
+            Per-channel normalization standard deviation (RGB),
+            used when ``use_default_norm`` is False.
+
+        eval_resize_policy (TransformResizePolicy):
+            Spatial transform policy applied during evaluation.
+            Typically deterministic (e.g., center crop).
+            - "resize_then_center_crop": Applies RandomResizedCrop,
+              producing a square output.
+            - "resize_shorter_side": Resizes the image proportionally
+              so that the shorter side matches a scaled size, then applies
+              a center crop to produce a square image
     """
 
     image_size: int = 224
 
-    train_resize_policy: TransformResizePolicy = "resize_then_crop"
+    train_resize_policy: TransformResizePolicy = "resize_then_random_crop"
 
-    # Use if resize policy is "resize_then_crop"
+    # Use if train resize policy is "resize_then_random_crop"
     train_resize_min: float = 0.3
     train_resize_max: float = 1.0
 
+    train_horizontal_flip: bool = True
+    
     train_rand_augment: bool = True
     train_rand_augment_num_ops: int = 2
     train_rand_augment_magnitude: int = 9
@@ -71,4 +100,4 @@ class TransformConfig:
     mean: Tuple[float, float, float] = DEFAULT_MEAN
     std: Tuple[float, float, float] = DEFAULT_STD
 
-    eval_resize_policy: TransformResizePolicy = "resize_then_crop"
+    eval_resize_policy: TransformResizePolicy = "resize_then_center_crop"
