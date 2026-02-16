@@ -92,3 +92,28 @@ def run_inference(model, dataloader: DataLoader, device: str) -> torch.Tensor:
             outputs.append(logits.cpu())
 
     return torch.cat(outputs)
+
+
+def inference_on_one_batch(
+    model: torch.nn.Module, batch: torch.Tensor, device: torch.device
+) -> torch.Tensor:
+    """
+    Run inference on a single batch and return predicted class indices.
+
+    Args:
+        model (torch.nn.Module): Trained classification model.
+        batch (torch.Tensor): Input batch of shape (B, ...).
+        device (torch.device): Device to run inference on.
+
+    Returns:
+        torch.Tensor: Predicted class indices of shape (B,)
+                      returned on CPU.
+    """
+    model.eval()
+    batch = batch.to(device)
+
+    with torch.inference_mode():
+        logits = model(batch)
+        classes = torch.argmax(logits, dim=1)
+
+    return classes.cpu()

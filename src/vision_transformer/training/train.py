@@ -3,9 +3,14 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
+from PIL import ImageDraw, ImageFont
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
+from torchvision.transforms.functional import to_pil_image
+from torchvision.utils import make_grid
 from tqdm.auto import tqdm
 
 from vision_transformer.config.experiment import ExperimentConfig
@@ -15,7 +20,10 @@ from vision_transformer.data.transforms import (
     build_eval_transforms,
     build_train_transforms,
 )
-from vision_transformer.inference.predict import evaluate_classifier
+from vision_transformer.inference.predict import (
+    evaluate_classifier,
+    inference_on_one_batch,
+)
 from vision_transformer.logger.logger_factory import LoggerFactory
 from vision_transformer.model.vision_transformer import VisionTransformer
 from vision_transformer.training.checkpoint import save_checkpoint
@@ -48,8 +56,16 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
       - Saves ``best.pth`` when validation accuracy improves.
 
     Logging:
-      - Writes TensorBoard scalars for training loss, learning rate, validation
-        metrics, and test metrics under ``runs/<run_name>``.
+        - Writes TensorBoard scalars for training loss and learning rate
+        at every optimizer step.
+        - Logs validation metrics (accuracy, F1, precision, recall)
+        at evaluation intervals.
+        - Logs final test metrics after training completes.
+        - Optionally logs prediction visualizations (sample images with
+        ground-truth and predicted labels) if
+        ``training.log_prediction_visualizations`` is enabled.
+        - All logs are written under ``runs/<run_name>`` and can be
+        visualized using TensorBoard.
 
     Args:
         experiment_config: Experiment configuration dataclass containing training,
@@ -91,7 +107,13 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     eval_interval = experiment_config.training.eval_interval
     if experiment_config.training.checkpoints_dir is not None:
         checkpoints_dir = Path(experiment_config.training.checkpoints_dir)
+    log_prediction_visualizations = (
+        experiment_config.training.log_prediction_visualizations
+    )
+    normalization_mean = experiment_config.transform.mean
+    normalization_std = experiment_config.transform.std
     num_classes = experiment_config.model.num_classes
+    image_size = experiment_config.transform.image_size
 
     assert gradient_accumulation_steps >= 1, "gradient_accumulation_steps must be >= 1"
     assert experiment_config.transform.image_size == experiment_config.model.image_size
@@ -309,5 +331,40 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     writer.add_scalar("F1/test", test_set_metrics["f1"], _epoch)
     writer.add_scalar("Precision/test", test_set_metrics["precision"], _epoch)
     writer.add_scalar("Recall/test", test_set_metrics["recall"], _epoch)
+
+    # Optionally show output of model, for some test data
+    if log_prediction_visualizations:
+        samples_idxs = torch.randperm(len(test_ds))[:batch_size]
+        xs = torch.stack([test_ds[i][0] for i in samples_idxs])  # (B,C,H,W)
+        ys = torch.tensor([test_ds[i][1] for i in samples_idxs])  # (B,)
+
+        pred_ys = inference_on_one_batch(model=model, batch=xs, device=device)  # (B,)
+
+        # Unnormalize (xs is in CPU currently; keep everything on CPU for PIL)
+        mean_tensor = torch.tensor(normalization_mean).view(1, 3, 1, 1)
+        std_tensor = torch.tensor(normalization_std).view(1, 3, 1, 1)
+        xs_vis = (xs * std_tensor + mean_tensor).clamp(0.0, 1.0)
+        if image_size < 128:
+            # Upsclae for better visualization
+            xs_vis = F.interpolate(xs_vis, scale_factor=4, mode="nearest")
+
+        # Annotate each image with GT and Pred
+        annotated = []
+        for i in range(xs_vis.shape[0]):
+            img = to_pil_image(xs_vis[i])  # PIL image
+            draw = ImageDraw.Draw(img)
+
+            gt = int(ys[i])
+            pr = int(pred_ys[i])
+
+            text = f"GT: {gt} | Pred: {pr}"
+            draw.text((2, 2), text, fill=(255, 255, 255))  # white text
+
+            annotated.append(transforms.ToTensor()(img))
+
+        annotated = torch.stack(annotated)  # (B,C,H,W)
+
+        grid = make_grid(annotated, nrow=min(8, batch_size))
+        writer.add_image("predictions/samples", grid, global_step=step)
 
     writer.close()
