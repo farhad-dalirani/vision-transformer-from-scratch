@@ -30,6 +30,9 @@ from vision_transformer.training.checkpoint import save_checkpoint
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
+from vision_transformer.visualization.visualize import (
+    log_model_predictions,
+)
 
 LoggerFactory.configure()
 _log = LoggerFactory.get_logger()
@@ -334,37 +337,17 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
 
     # Optionally show output of model, for some test data
     if log_prediction_visualizations:
-        samples_idxs = torch.randperm(len(test_ds))[:batch_size]
-        xs = torch.stack([test_ds[i][0] for i in samples_idxs])  # (B,C,H,W)
-        ys = torch.tensor([test_ds[i][1] for i in samples_idxs])  # (B,)
-
-        pred_ys = inference_on_one_batch(model=model, batch=xs, device=device)  # (B,)
-
-        # Unnormalize (xs is in CPU currently; keep everything on CPU for PIL)
-        mean_tensor = torch.tensor(normalization_mean).view(1, 3, 1, 1)
-        std_tensor = torch.tensor(normalization_std).view(1, 3, 1, 1)
-        xs_vis = (xs * std_tensor + mean_tensor).clamp(0.0, 1.0)
-        if image_size < 128:
-            # Upsclae for better visualization
-            xs_vis = F.interpolate(xs_vis, scale_factor=4, mode="nearest")
-
-        # Annotate each image with GT and Pred
-        annotated = []
-        for i in range(xs_vis.shape[0]):
-            img = to_pil_image(xs_vis[i])  # PIL image
-            draw = ImageDraw.Draw(img)
-
-            gt = int(ys[i])
-            pr = int(pred_ys[i])
-
-            text = f"GT: {gt} | Pred: {pr}"
-            draw.text((2, 2), text, fill=(255, 255, 255))  # white text
-
-            annotated.append(transforms.ToTensor()(img))
-
-        annotated = torch.stack(annotated)  # (B,C,H,W)
-
-        grid = make_grid(annotated, nrow=min(8, batch_size))
-        writer.add_image("predictions/samples", grid, global_step=step)
+        log_model_predictions(
+            writer=writer,
+            model=model,
+            test_ds=test_ds,
+            device=device,
+            step=step,
+            batch_size=batch_size,
+            image_size=image_size,
+            normalization_mean=normalization_mean,
+            normalization_std=normalization_std,
+            inference_on_one_batch=inference_on_one_batch,
+        )
 
     writer.close()

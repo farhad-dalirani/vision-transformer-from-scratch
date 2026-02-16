@@ -32,7 +32,7 @@ class DatasetConfig:
         split_seed: Random seed for deterministic train/validation splitting.
     """
     name: str = "cifar10"
-    root: str = "./data"
+    root: str = "./datasets"
 
     # ImageFolder-only arguments
     train_dir: str | None = "train"
