@@ -46,6 +46,12 @@ class TrainingConfig:
             with predicted and ground-truth labels) to TensorBoard
             after finishing the training. Number of depicted images
             will be equal batch size.
+
+        log_positional_embedding_visualizations (bool):
+            If True, logs visualizations of the learned positional
+            embeddings (norm maps and similarity heatmaps) to
+            TensorBoard. Useful for inspecting spatial encoding behavior
+            in Vision Transformers.
     """
 
     epochs: int = 1000
@@ -59,3 +65,4 @@ class TrainingConfig:
     resume_path: str | None = None
 
     log_prediction_visualizations: bool = True
+    log_positional_embedding_visualizations: bool = True

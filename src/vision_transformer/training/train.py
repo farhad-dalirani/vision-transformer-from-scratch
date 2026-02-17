@@ -3,14 +3,9 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import torch.nn.functional as F
-from PIL import ImageDraw, ImageFont
 from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchvision import transforms
-from torchvision.transforms.functional import to_pil_image
-from torchvision.utils import make_grid
 from tqdm.auto import tqdm
 
 from vision_transformer.config.experiment import ExperimentConfig
@@ -30,6 +25,9 @@ from vision_transformer.training.checkpoint import save_checkpoint
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
+from vision_transformer.visualization.positional_embedding import (
+    log_positional_embedding,
+)
 from vision_transformer.visualization.prediction import (
     log_model_predictions,
 )
@@ -67,6 +65,8 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         - Optionally logs prediction visualizations (sample images with
         ground-truth and predicted labels) if
         ``training.log_prediction_visualizations`` is enabled.
+        - Optionally logs leared embeddings after training completes if
+        ``training.log_positional_embedding_visualizations`` is enabled.
         - All logs are written under ``runs/<run_name>`` and can be
         visualized using TensorBoard.
 
@@ -112,6 +112,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         checkpoints_dir = Path(experiment_config.training.checkpoints_dir)
     log_prediction_visualizations = (
         experiment_config.training.log_prediction_visualizations
+    )
+    log_positional_embedding_visualizations = (
+        experiment_config.training.log_positional_embedding_visualizations
     )
     normalization_mean = experiment_config.transform.mean
     normalization_std = experiment_config.transform.std
@@ -349,5 +352,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
             normalization_std=normalization_std,
             inference_on_one_batch=inference_on_one_batch,
         )
+
+    # Optionally visualize learned positional embeddings
+    if log_positional_embedding_visualizations:
+        log_positional_embedding(writer=writer, model=model, step=step)
 
     writer.close()

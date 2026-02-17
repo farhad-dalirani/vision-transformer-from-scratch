@@ -1,3 +1,5 @@
+from math import sqrt
+
 import torch
 import torch.nn as nn
 
@@ -159,3 +161,9 @@ class VisionTransformer(nn.Module):
         logits = self.head(cls_token)  # (B, num_classes)
 
         return logits
+
+    def get_positional_embeddings(self):
+        return self.embeddings.pos_embed
+
+    def get_token_grid_size(self):
+        return int(sqrt(self.num_patches))
