@@ -30,7 +30,7 @@ from vision_transformer.training.checkpoint import save_checkpoint
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
-from vision_transformer.visualization.visualize import (
+from vision_transformer.visualization.prediction import (
     log_model_predictions,
 )
 
