@@ -1,9 +1,12 @@
 # Vision Transformer (ViT) from Scratch
+![ViT from scratch](readme-assets/header.png)
 
 ## Introduction
 A clean PyTorch re-implementation of the Vision Transformer (ViT) from scratch, introduced in “An Image Is Worth 16×16 Words: Transformers for Image Recognition at Scale” (ICLR 2021).
 
-The codebase is designed to be easy to train, modify, and extend. Everything is fully configurable, including ViT model architecture, optimization settings, data pipeline components, and training hyperparameters.
+- The codebase is designed to be easy to train, modify, and extend. 
+- Everything is **fully configurable**, including ViT model architecture, optimization settings, data pipeline components, training hyperparameters, etc.
+- A wide range of visualization features, from metrics like precision, recall, loss, F1 score, and accuracy, and learning rate curves to qualitative visualizations of model predictions, attention maps (CLS-to-patch attention), and positional embedding representations (similarity maps and magnitude heatmaps).
 
 
 ## Quick Installation
@@ -61,9 +64,80 @@ tensorboard --logdir=runs
 ```
 
 ## Results
-- For training on `CIFAR-10` from scratch, you can run `scripts/training-cifar-10.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `85.47%`.
-- For training on `CIFAR-100` from scratch, you can run `scripts/training-cifar-100.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `59.74%`.
-- For training on `German Traffic Sign Recognition Dataset (GTSRB)` from scratch, you can run `scripts/training-GTSRB.sh`. The specified ViT model in the configuration file achieves a test set accuracy of `98.3%`.
+
+I trained ViT models from scratch on `CIFAR-100`, `CIFAR-10` and `German Traffic Sign Recognition Dataset (GTSRB)`. To do the same, you can run follwoing files: `scripts/training-cifar-100.sh`, `scripts/training-cifar-10.sh`, and `scripts/training-GTSRB.sh`.
+
+In the following sections, I report the test accuracy, along with visualizations of model predictions, attention maps (CLS-to-patch attention), and positional embedding representations (similarity maps and magnitude heatmaps).
+
+- The **prediction visualizations** show example inputs with their ground-truth and predicted labels, giving a qualitative sense of model performance. 
+- The **CLS-to-patch attention maps** highlight which image regions the model focuses on when making a classification decision. 
+- The **positional embedding similarity maps** illustrate how spatial tokens relate to each other in embedding space, while the **magnitude (norm) maps** show how strongly each spatial position is encoded. 
+
+Together, all these visualizations provide insight into both what the model learns and how it makes decisions. 
+
+
+### CIFAR-100
+
+-   **Test Accuracy:** 59.74%
+
+#### Sample Predictions
+
+![CIFAR-100 Predictions](readme-assets/cifar100_predictions.png)
+
+#### Attention Visualization (CLS - Patches)
+
+![CIFAR-100 Attention Map](readme-assets/cifar100_attention.png)
+
+#### Positional Embeddings Visualization
+
+| **Similarity Map** | **Magnitude (Norm) Map** |
+|--------------------|--------------------------|
+| ![CIFAR-100 Positional Similarity](readme-assets/cifar100_pos_similarity.png) | ![CIFAR-100 Positional Norm](readme-assets/cifar100_pos_norm.png) |
+
+
+------------------------------------------------------------------------
+
+
+### CIFAR-10
+
+-   **Test Accuracy:** 85.47%
+
+#### Sample Predictions
+
+![CIFAR-10Predictions](readme-assets/cifar10_predictions.png)
+
+#### Attention Visualization (CLS - Patches)
+
+![CIFAR-10 AttentionMap](readme-assets/cifar10_attention.png)
+
+#### Positional Embeddings Visualization
+
+| **Similarity Map** | **Magnitude (Norm) Map** |
+|--------------------|--------------------------|
+| ![CIFAR-10 Positional Similarity](readme-assets/cifar10_pos_similarity.png) | ![CIFAR-10 Positional Norm](readme-assets/cifar10_pos_norm.png) |
+
+
+------------------------------------------------------------------------
+
+### German Traffic Sign Recognition Benchmark (GTSRB)
+
+-   **Test Accuracy:** 98.3%
+
+#### Sample Predictions
+
+![GTSRB Predictions](readme-assets/gtsrb_predictions.png)
+
+#### Attention Visualization (CLS - Patches)
+
+![GTSRB Attention Map](readme-assets/gtsrb_attention.png)
+
+#### Positional Embeddings Visualization
+
+| **Similarity Map** | **Magnitude (Norm) Map** |
+|--------------------|--------------------------|
+| ![GTSRB Positional Similarity](readme-assets/gtsrb_pos_similarity.png) | ![GTSRB Positional Norm](readme-assets/gtsrb_pos_norm.png) |
+
+------------------------------------------------------------------------
 
 
 ## License
