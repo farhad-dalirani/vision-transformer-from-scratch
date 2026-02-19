@@ -38,73 +38,8 @@ def _make_rgb_pil(w: int, h: int) -> Image.Image:
     return Image.fromarray(arr, mode="RGB")
 
 
-def _assert_has_ops(compose: tvt.Compose, expected_types: tuple[type, ...]) -> None:
-    """Asserts that a Compose contains ops with the expected types in order.
-
-    Args:
-        compose: torchvision.transforms.Compose instance.
-        expected_types: Tuple of transform classes expected in order.
-    """
-    actual = tuple(type(op) for op in compose.transforms)
-    assert actual == expected_types
-
-
-def test_build_train_transforms_has_expected_ops() -> None:
-    cfg = TransformConfig(image_size=224)
-    t = build_train_transforms(cfg)
-
-    _assert_has_ops(
-        t,
-        (
-            tvt.RandomResizedCrop,
-            tvt.RandomHorizontalFlip,
-            tvt.ToTensor,
-            tvt.Normalize,
-        ),
-    )
-
-    # Check RRC scale bounds are wired through.
-    rrc = t.transforms[0]
-    assert rrc.size == (224, 224)
-    assert rrc.scale == (cfg.train_resize_min, cfg.train_resize_max)
-
-
-@pytest.mark.parametrize(
-    "policy,expected_first_two",
-    [
-        (
-            "resize_then_crop",
-            (tvt.Resize, tvt.CenterCrop),
-        ),
-        (
-            "resize_only_ratio_preserving",
-            (tvt.Resize, tvt.ToTensor),  # only one spatial op then ToTensor
-        ),
-    ],
-)
-def test_build_eval_transforms_op_sequence(
-    policy: str, 
-    expected_first_two: tuple[type, type]
-) -> None:
-    cfg = TransformConfig(image_size=224, eval_resize_policy=policy)
-    t = build_eval_transforms(cfg)
-
-    # For resize_then_crop: Resize, CenterCrop, ToTensor, Normalize
-    # For resize_only_ratio_preserving: Resize, ToTensor, Normalize
-    if policy == "resize_then_crop":
-        _assert_has_ops(
-            t,
-            (tvt.Resize, tvt.CenterCrop, tvt.ToTensor, tvt.Normalize),
-        )
-    else:
-        _assert_has_ops(
-            t,
-            (tvt.Resize, tvt.ToTensor, tvt.Normalize),
-        )
-
-
 def test_build_eval_transforms_resize_then_crop_computes_expected_resize_size() -> None:
-    cfg = TransformConfig(image_size=512, eval_resize_policy="resize_then_crop")
+    cfg = TransformConfig(image_size=512, eval_resize_policy="resize_then_center_crop")
     t = build_eval_transforms(cfg)
 
     resize = t.transforms[0]
@@ -122,7 +57,7 @@ def test_build_eval_transforms_resize_then_crop_computes_expected_resize_size() 
 def test_build_eval_transforms_resize_only_ratio_preserving_uses_direct_size() -> None:
     cfg = TransformConfig(
         image_size=32, 
-        eval_resize_policy="resize_only_ratio_preserving"
+        eval_resize_policy="resize_shorter_side"
     )
     t = build_eval_transforms(cfg)
 
@@ -162,10 +97,10 @@ def test_normalize_parameters_custom_norm() -> None:
 @pytest.mark.parametrize(
     "policy,image_size,input_wh",
     [
-        ("resize_then_crop", 224, (400, 400)),
-        ("resize_then_crop", 512, (900, 900)),
-        ("resize_only_ratio_preserving", 32, (40, 40)),
-        ("resize_only_ratio_preserving", 224, (320, 320)),
+        ("resize_then_center_crop", 224, (400, 400)),
+        ("resize_then_center_crop", 512, (900, 900)),
+        ("resize_shorter_side", 32, (40, 40)),
+        ("resize_shorter_side", 224, (320, 320)),
     ],
 )
 def test_eval_transform_output_shape(

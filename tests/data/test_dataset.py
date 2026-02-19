@@ -17,7 +17,7 @@ from vision_transformer.data.transforms import (
 def cifar10_datasets(tmp_path):
     cfg_transform = TransformConfig(
         image_size=64, 
-        eval_resize_policy="resize_only_ratio_preserving"
+        eval_resize_policy="resize_shorter_side"
     )
     train_trans = build_train_transforms(cfg=cfg_transform)
     eval_trans = build_eval_transforms(cfg=cfg_transform)
@@ -65,7 +65,7 @@ def test_cifar_10_label_correctness(cifar10_datasets):
 def cifar100_datasets(tmp_path):
     cfg_transform = TransformConfig(
         image_size=64, 
-        eval_resize_policy="resize_only_ratio_preserving"
+        eval_resize_policy="resize_shorter_side"
     )
     train_trans = build_train_transforms(cfg=cfg_transform)
     eval_trans = build_eval_transforms(cfg=cfg_transform)
@@ -108,7 +108,7 @@ def test_split_deterministic(tmp_path):
     # build twice with same seed/root
     cfg_transform = TransformConfig(
         image_size=64, 
-        eval_resize_policy="resize_only_ratio_preserving"
+        eval_resize_policy="resize_shorter_side"
     )
     train_trans = build_train_transforms(cfg=cfg_transform)
     eval_trans = build_eval_transforms(cfg=cfg_transform)
@@ -131,7 +131,7 @@ def test_split_deterministic(tmp_path):
 def test_split_changes_with_seed(tmp_path):
     cfg_transform = TransformConfig(
         image_size=64, 
-        eval_resize_policy="resize_only_ratio_preserving"
+        eval_resize_policy="resize_shorter_side"
     )
     train_trans = build_train_transforms(cfg=cfg_transform)
     eval_trans = build_eval_transforms(cfg=cfg_transform)
