@@ -11,36 +11,6 @@ from torchvision.datasets import ImageFolder
 from vision_transformer.config.dataset import DatasetConfig
 
 
-def get_num_classes(dataset_name: str) -> int:
-    """Returns the number of classes for a supported dataset.
-
-    Args:
-        dataset_name: Name of the dataset (e.g., "cifar10", "cifar100",
-            "tinyimagenet-200", or "imagefolder").
-
-    Returns:
-        Number of classes in the dataset. Returns -1 for datasets where the
-        number of classes is determined dynamically from the directory
-        structure (e.g., ImageFolder).
-
-    Raises:
-        ValueError: If the dataset name is not recognized.
-    """
-    name = dataset_name.lower()
-
-    if name in {"imagefolder"}:
-        return -1
-    if name in {"tinyimagenet-200"}:
-        return 200
-    if name == "cifar10":
-        return 10
-    if name == "cifar100":
-        return 100
-    if name == "gtsrb":
-        return 43
-
-    raise ValueError(f"Unknown dataset name: {dataset_name}")
-
 def _validate_val_split(val_split: float) -> None:
     """Validates that the validation split fraction is in the range (0, 1).
 
@@ -110,7 +80,7 @@ def build_datasets(
     name = cfg.name.lower()
 
     # --- ImageFolder-style (ImageNet-like layouts)
-    if name in {"tinyimagenet-200", "imagefolder"}:
+    if name == "imagefolder":
         train_path = os.path.join(cfg.root, cfg.train_dir)
         test_path = os.path.join(cfg.root, cfg.test_dir)
 
@@ -143,6 +113,27 @@ def build_datasets(
         val_ds = Subset(full_train_for_val, val_indices)
         return train_ds, val_ds, test_ds
 
+    # --- ImageNet-1K
+    if name == "imagenet-1k":
+        full_train_for_train = datasets.ImageNet(
+            root=cfg.root, train=True, transform=train_transform, download=cfg.download
+        )
+        full_train_for_val = datasets.ImageNet(
+            root=cfg.root, train=True, transform=eval_transform, download=cfg.download
+        )
+        test_ds = datasets.ImageNet(
+            root=cfg.root, train=False, transform=eval_transform, download=cfg.download
+        )
+
+        train_indices, val_indices = _split_train_val_indices(
+            num_samples=len(full_train_for_train),
+            val_split=cfg.val_split,
+            seed=cfg.split_seed,
+        )
+        train_ds = Subset(full_train_for_train, train_indices)
+        val_ds = Subset(full_train_for_val, val_indices)
+        return train_ds, val_ds, test_ds
+    
     # --- CIFAR-10
     if name == "cifar10":
         full_train_for_train = datasets.CIFAR10(

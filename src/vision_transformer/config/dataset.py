@@ -18,8 +18,8 @@ class DatasetConfig:
         the splits internally.
 
     Attributes:
-        name: Dataset identifier (e.g., "cifar10", "cifar100", "imagefolder",
-            "tinyimagenet-200").
+        name: Dataset identifier (e.g., "cifar10", "cifar100", "imagenet-1k", 
+            "gtsrb", "imagefolder").
         root: Root directory containing the dataset or download target.
         train_dir: Training split subdirectory name (ImageFolder-style only).
         val_dir: Validation split subdirectory name, or None if no dedicated

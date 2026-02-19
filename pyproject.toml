@@ -24,7 +24,8 @@ dependencies = [
     "tensorboard",
     "torchmetrics",
     "seaborn",
-    "matplotlib"
+    "matplotlib",
+    "scipy"
 ]
 
 
