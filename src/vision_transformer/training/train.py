@@ -25,6 +25,9 @@ from vision_transformer.training.checkpoint import save_checkpoint
 from vision_transformer.training.losses import calculate_loss, get_criterion
 from vision_transformer.training.lr_scheduler import get_lr_scheduler
 from vision_transformer.training.optim import get_optimizer
+from vision_transformer.visualization.attention_weights import (
+    log_model_attention_map,
+)
 from vision_transformer.visualization.positional_embedding import (
     log_positional_embedding,
 )
@@ -67,6 +70,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
         ``training.log_prediction_visualizations`` is enabled.
         - Optionally logs leared embeddings after training completes if
         ``training.log_positional_embedding_visualizations`` is enabled.
+        - Optionally logs attention map for some samples after training
+          completes if ``training.log_attention_map_visualizations``
+          is enabled.
         - All logs are written under ``runs/<run_name>`` and can be
         visualized using TensorBoard.
 
@@ -115,6 +121,9 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     )
     log_positional_embedding_visualizations = (
         experiment_config.training.log_positional_embedding_visualizations
+    )
+    log_attention_map_visualizations = (
+        experiment_config.training.log_attention_map_visualizations
     )
     normalization_mean = experiment_config.transform.mean
     normalization_std = experiment_config.transform.std
@@ -356,5 +365,19 @@ def training_loop(experiment_config: ExperimentConfig) -> None:
     # Optionally visualize learned positional embeddings
     if log_positional_embedding_visualizations:
         log_positional_embedding(writer=writer, model=model, step=step)
+
+    if log_attention_map_visualizations:
+        log_model_attention_map(
+            writer=writer,
+            model=model,
+            test_ds=test_ds,
+            device=device,
+            step=step,
+            batch_size=batch_size,
+            image_size=image_size,
+            normalization_mean=normalization_mean,
+            normalization_std=normalization_std,
+            inference_on_one_batch=inference_on_one_batch,
+        )
 
     writer.close()

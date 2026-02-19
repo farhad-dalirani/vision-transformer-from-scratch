@@ -1,46 +1,13 @@
 import torch
-import torch.nn.functional as F
 from PIL import ImageDraw
 from torchvision import transforms
 from torchvision.transforms.functional import to_pil_image
-from torchvision.utils import make_grid
 
 from vision_transformer.data.utils import sample_batch_from_dataset
-
-
-def unnormalize_and_upscale(
-    xs: torch.Tensor,
-    mean: tuple[float, ...],
-    std: tuple[float, ...],
-    image_size: int,
-    min_vis_size: int = 128,
-    upscale_factor: int = 4,
-) -> torch.Tensor:
-    """Reverses normalization and optionally upscales images for visualization.
-
-    Works for arbitrary channel counts (e.g., 1, 3, 4).
-    """
-
-    if xs.ndim != 4:
-        raise ValueError(f"Expected input shape (B, C, H, W), got {xs.shape}")
-
-    B, C, H, W = xs.shape
-
-    if len(mean) != C or len(std) != C:
-        raise ValueError(
-            f"Mean/std length must match number of channels ({C}), "
-            f"got mean={len(mean)}, std={len(std)}"
-        )
-
-    mean_t = torch.tensor(mean, dtype=xs.dtype, device=xs.device).view(1, C, 1, 1)
-    std_t = torch.tensor(std, dtype=xs.dtype, device=xs.device).view(1, C, 1, 1)
-
-    xs_vis = (xs * std_t + mean_t).clamp(0.0, 1.0)
-
-    if image_size < min_vis_size:
-        xs_vis = F.interpolate(xs_vis, scale_factor=upscale_factor, mode="nearest")
-
-    return xs_vis
+from vision_transformer.visualization.utils import (
+    log_image_grid_to_tensorboard,
+    unnormalize_and_upscale,
+)
 
 
 def annotate_images_with_labels(
@@ -64,18 +31,6 @@ def annotate_images_with_labels(
         annotated.append(to_tensor(img))
 
     return torch.stack(annotated)  # (B, C, H, W)
-
-
-def log_prediction_grid_to_tensorboard(
-    writer,
-    tag: str,
-    images: torch.Tensor,
-    step: int,
-    nrow: int = 8,
-) -> None:
-    """Logs a BCHW image batch as a grid to TensorBoard."""
-    grid = make_grid(images, nrow=min(nrow, images.shape[0]))
-    writer.add_image(tag, grid, global_step=step)
 
 
 def log_model_predictions(
@@ -106,7 +61,7 @@ def log_model_predictions(
     )
 
     annotated = annotate_images_with_labels(xs_vis=xs_vis, ys=ys, pred_ys=pred_ys)
-    log_prediction_grid_to_tensorboard(
+    log_image_grid_to_tensorboard(
         writer=writer,
         tag="predictions/samples",
         images=annotated,

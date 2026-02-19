@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -32,6 +34,7 @@ class MultiHeadSelfAttention(nn.Module):
         num_heads: int,
         attention_dropout_p: float,
         proj_dropout_p: float,
+        store_attention: bool = False,
     ):
         super().__init__()
 
@@ -61,6 +64,11 @@ class MultiHeadSelfAttention(nn.Module):
         self.proj = nn.Linear(in_features=self.dim, out_features=self.dim, bias=True)
         self.proj_dropout = nn.Dropout(p=self.proj_dropout_p)
 
+        # Flag to Whether to store attention score (B, H, N, N) or not.
+        # It is usefull for visualization purposes.
+        self.store_attention_flag = store_attention
+        self.last_attn: Optional[torch.Tensor] = None
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         # X: (B, N, D)
@@ -89,6 +97,8 @@ class MultiHeadSelfAttention(nn.Module):
         # Calulating attention score
         attention = (Q @ K.transpose(-2, -1)) * self.scale  # B, H, N, N
         attention = attention.softmax(dim=-1)
+        if self.store_attention_flag:
+            self.last_attn = attention.detach()
         attention = self.attention_dropout(attention)
 
         # Calculating new values of queries based on attention score and values.
@@ -103,3 +113,11 @@ class MultiHeadSelfAttention(nn.Module):
         out = self.proj_dropout(out)
 
         return out
+
+    def set_store_attention_flag(self, flag: bool) -> None:
+        self.store_attention_flag = flag
+        if not flag:
+            self.last_attn = None
+
+    def get_attention_weights(self) -> torch.Tensor:
+        return self.last_attn

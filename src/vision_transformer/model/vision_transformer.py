@@ -3,6 +3,7 @@ from math import sqrt
 import torch
 import torch.nn as nn
 
+from vision_transformer.model.attention import MultiHeadSelfAttention
 from vision_transformer.model.embeddings import CLSTokenAndPositionEmbedding
 from vision_transformer.model.mlp_block import (
     FinetuningClassificationHead,
@@ -163,7 +164,79 @@ class VisionTransformer(nn.Module):
         return logits
 
     def get_positional_embeddings(self):
+        """Returns the learned positional embedding tensor.
+
+        This exposes the model's learned positional embeddings stored inside
+        the embedding module. The returned tensor typically includes the [CLS]
+        token positional embedding at index 0.
+
+        Returns:
+            torch.Tensor: Positional embedding of shape (1, num_patches + 1, D),
+            where D is the embedding dimension.
+        """
         return self.embeddings.pos_embed
 
     def get_token_grid_size(self):
+        """Returns the patch grid size along one spatial dimension.
+
+        For a square input image split into non-overlapping square patches, the
+        number of patch tokens equals (grid_size * grid_size). This function
+        returns `grid_size`, i.e., the number of patches along height and width.
+
+        Returns:
+            int: Patch grid size (e.g., 14 for 224x224 with patch_size=16).
+        """
         return int(sqrt(self.num_patches))
+
+    def set_mha_blocks_store_attention_flag(self, flag: bool) -> None:
+        """Enables or disables attention weight caching in all MSA blocks.
+
+        This toggles a flag inside each Multi-Head Self-Attention (MSA) module
+        in the Transformer encoder stack. When enabled, attention weights
+        (typically shape (B, H, N, N)) can be cached during the forward pass
+        for visualization or debugging.
+
+        Args:
+            flag (bool): If True, attention weights are stored in each MSA block.
+                If False, attention caching is disabled.
+        """
+        for module in self.encoder.modules():
+            if isinstance(module, MultiHeadSelfAttention):
+                module.set_store_attention_flag(flag=flag)
+
+    def get_all_attention_weights(self) -> list[torch.Tensor]:
+        """Returns attention weights from all Multi-Head Self-Attention blocks.
+
+        Iterates over all Transformer encoder modules and collects the stored
+        attention weight tensors from each `MultiHeadSelfAttention` layer.
+
+        This method assumes that attention caching has been enabled (e.g., via
+        `set_mha_blocks_store_attention_flag(True)`) and that a forward pass
+        has already been executed.
+
+        Returns:
+            list[torch.Tensor]:
+                A list containing attention weight tensors from each attention block.
+                Each tensor typically has shape (B, H, N, N), where:
+                    - B is batch size,
+                    - H is number of heads,
+                    - N is number of tokens.
+
+        Notes:
+            - If attention caching was not enabled, elements may be None.
+            - The list order matches the forward execution order of encoder blocks.
+        """
+        attention_weights = []
+
+        for module in self.encoder.modules():
+            if isinstance(module, MultiHeadSelfAttention):
+                attn = module.get_attention_weights()
+                if attn is None:
+                    raise RuntimeError(
+                        "Attention weights for encoder block are not available. "
+                        "Make sure attention caching is enabled by calling "
+                        "`set_mha_blocks_store_attention_flag(True)` before the forward pass."
+                    )
+                attention_weights.append(attn)
+
+        return attention_weights

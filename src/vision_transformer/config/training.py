@@ -52,6 +52,12 @@ class TrainingConfig:
             embeddings (norm maps and similarity heatmaps) to
             TensorBoard. Useful for inspecting spatial encoding behavior
             in Vision Transformers.
+
+        log_attention_weights_visualizations (bool):
+            If True, logs visualizations of the attention map for
+            a batch of samples to Tensorboard after finishing the
+            training. Number of depicted images will be equal batch
+            size.
     """
 
     epochs: int = 1000
@@ -66,3 +72,4 @@ class TrainingConfig:
 
     log_prediction_visualizations: bool = True
     log_positional_embedding_visualizations: bool = True
+    log_attention_map_visualizations: bool = True
