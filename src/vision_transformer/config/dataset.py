@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
+datasetName = Literal["imagefolder", "imagenet-1k", "cifar10", "cifar100", "gtsrb"]
 
 @dataclass(frozen=True)
 class DatasetConfig:
@@ -31,7 +33,7 @@ class DatasetConfig:
             no official validation split exists (e.g., CIFAR).
         split_seed: Random seed for deterministic train/validation splitting.
     """
-    name: str = "cifar10"
+    name: datasetName = "cifar10"
     root: str = "./datasets"
 
     # ImageFolder-only arguments

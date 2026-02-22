@@ -1,10 +1,10 @@
 import math
-from typing import Callable, Literal
+from typing import Callable
 
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LambdaLR
 
-SchedulerNames = Literal["cosine", "linear", "none"]
+from vision_transformer.config.lr_scheduler import SchedulerNames
 
 
 def cosine_lr_scheduler_with_warmup_fn(

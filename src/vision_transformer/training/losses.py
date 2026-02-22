@@ -3,8 +3,10 @@ from typing import Callable
 import torch
 from torch.nn import CrossEntropyLoss
 
+from vision_transformer.config.loss import lossName
 
-def get_criterion(loss_name="cross-entropy", **kwargs) -> Callable:
+
+def get_criterion(loss_name: lossName = "cross-entropy", **kwargs) -> Callable:
     """Factory function to create a loss criterion.
 
     Currently supports cross-entropy loss with optional label smoothing.
